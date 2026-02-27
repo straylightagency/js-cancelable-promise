@@ -1,6 +1,6 @@
 {
   "name": "@straylightagency/cancelable-promise",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Promise class that can be canceled",
   "type": "module",
   "main": "src/index.js",
