@@ -1,0 +1,27 @@
+{
+  "name": "@straylightagency/cancelable-promise",
+  "version": "1.0.0",
+  "description": "Promise class that can be canceled",
+  "type": "module",
+  "main": "src/index.js",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": false,
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [],
+  "author": "Anthony Pauwels (anthony@straylightagency.be)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/straylightagency/js-cancelable-promise.git"
+  },
+  "bugs": {
+    "url": "https://github.com/straylightagency/js-cancelable-promise/issues"
+  },
+  "homepage": "https://github.com/straylightagency/js-cancelable-promise#readme"
+}
