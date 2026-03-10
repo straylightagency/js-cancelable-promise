@@ -1,7 +1,12 @@
 /**
  * @author anthony@straylightagency.be
  */
-export default class CancelablePromise extends Promise {
+export default class CancelablePromise {
+    /**
+     * @type {Promise}
+     */
+    promise;
+
     /**
      * @type {boolean}
      */
@@ -21,7 +26,7 @@ export default class CancelablePromise extends Promise {
      * @param executor {Function}
      */
     constructor(executor) {
-        super( (resolve, reject) => {
+        this.promise = new Promise( (resolve, reject) => {
             const onResolve = value => {
                 this.isPending = true;
                 resolve( value );
@@ -42,6 +47,31 @@ export default class CancelablePromise extends Promise {
 
             return executor( onResolve, onReject, onCancel );
         } );
+    }
+
+    /**
+     * @param onFulfilled {Function}
+     * @param onRejected {Function}
+     * @returns {*}
+     */
+    then(onFulfilled, onRejected) {
+        return this.promise.then( onFulfilled, onRejected );
+    }
+
+    /**
+     * @param onFinally {Function}
+     * @returns {*}
+     */
+    finally(onFinally) {
+        return this.promise.finally( onFinally );
+    }
+
+    /**
+     * @param onRejected {Function}
+     * @returns {*}
+     */
+    catch(onRejected) {
+        return this.promise.finally( onRejected );
     }
 
     /**
