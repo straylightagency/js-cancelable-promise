@@ -1,11 +1,19 @@
 /**
+ * Base Class
+ * Make Promise cancelable by calling a method "cancel()" that abort the promise
+ *
  * @author anthony@straylightagency.be
  */
-export default class CancelablePromise {
+export class CancelablePromise {
     /**
      * @type {Promise}
      */
     promise;
+
+    /**
+     * @type {AbortController}
+     */
+    #controller;
 
     /**
      * @type {boolean}
@@ -13,79 +21,119 @@ export default class CancelablePromise {
     isPending = true;
 
     /**
-     * @type {boolean}
-     */
-    isCanceled = false;
-
-    /**
-     * @type {Function}
-     */
-    cancelHandler = reason => {};
-
-    /**
-     * @param executor {Function}
+     * @param {Function} executor (resolve, reject, signal) => void
      */
     constructor(executor) {
-        this.promise = new Promise( (resolve, reject) => {
+        this.#controller = new AbortController();
+        const { signal } = this.#controller;
+
+        this.promise = new Promise((resolve, reject) => {
+            signal.addEventListener("abort", () => {
+                this.isPending = false;
+                reject(signal.reason);
+            }, { once: true });
+
             const onResolve = value => {
-                this.isPending = true;
-                resolve( value );
+                if (signal.aborted) return;
+                this.isPending = false;
+                resolve(value);
             };
 
             const onReject = reason => {
+                if (signal.aborted) return;
                 this.isPending = false;
-                reject( reason );
+                reject(reason);
             };
 
-            const onCancel = handler => {
-                if ( !this.isPending ) {
-                    throw "The `onCancel` handler was attached after the promise settled.";
-                }
-
-                this.cancelHandler = handler;
+            try {
+                executor(onResolve, onReject, signal);
+            } catch (err) {
+                onReject(err);
             }
-
-            return executor( onResolve, onReject, onCancel );
-        } );
+        });
     }
 
     /**
-     * @param onFulfilled {Function}
-     * @param onRejected {Function}
-     * @returns {*}
+     * @returns {boolean}
+     */
+    get isCanceled() {
+        return this.#controller.signal.aborted;
+    }
+
+    /**
+     * @returns {AbortSignal}
+     */
+    get signal() {
+        return this.#controller.signal;
+    }
+
+    /**
+     * @param {function} onFulfilled
+     * @param {function} onRejected
+     * @returns {CancelablePromise|*}
      */
     then(onFulfilled, onRejected) {
-        return this.promise.then( onFulfilled, onRejected );
+        return CancelablePromise.from(this.promise.then(onFulfilled, onRejected), this.#controller);
     }
 
     /**
-     * @param onFinally {Function}
-     * @returns {*}
-     */
-    finally(onFinally) {
-        return this.promise.finally( onFinally );
-    }
-
-    /**
-     * @param onRejected {Function}
-     * @returns {*}
+     * @param {function} onRejected
+     * @returns {CancelablePromise|*}
      */
     catch(onRejected) {
-        return this.promise.finally( onRejected );
+        return CancelablePromise.from(this.promise.catch(onRejected), this.#controller);
     }
 
     /**
-     * @param reason {String}
+     * @param {function} onFinally
+     * @returns {CancelablePromise|*}
      */
-    cancel(reason = undefined) {
-        if ( !this.isPending || this.isCanceled ) {
+    finally(onFinally) {
+        return CancelablePromise.from(this.promise.finally(onFinally), this.#controller);
+    }
+
+    /**
+     * @param {*} reason
+     */
+    cancel(reason) {
+        if (!this.isPending || this.isCanceled) {
             return;
         }
 
-        const handler = this.cancelHandler;
+        const error = reason instanceof Error
+            ? reason
+            : new DOMException(reason || "Operation canceled", "AbortError");
 
-        handler( reason );
-
-        this.isCanceled = true;
+        this.#controller.abort(error);
     }
+
+    /**
+     *
+     * @param {Promise} promise
+     * @param {AbortController} controller
+     * @returns {CancelablePromise|*}
+     */
+    static from(promise, controller = new AbortController()) {
+        const instance = Object.create(CancelablePromise.prototype);
+        instance.promise = promise;
+        instance.#controller = controller;
+        instance.isPending = true;
+
+        promise.finally(() => {
+            instance.isPending = false;
+        });
+
+        return instance;
+    }
+}
+
+/**
+ * Convert a promise into a CancelablePromise.
+ *
+ * @param {Promise} promise
+ * @param {AbortController} controller
+ * @returns {CancelablePromise|*}
+ */
+export function makeCancelable(promise, controller = new AbortController()) {
+    return CancelablePromise.from(promise, controller);
 }
