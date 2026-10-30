@@ -1,7 +1,7 @@
 {
   "name": "@straylightagency/cancelable-promise",
-  "version": "1.0.4",
-  "description": "Promise class that can be canceled",
+  "version": "1.1.0",
+  "description": "A lightweight JavaScript Promise class that supports cancellation through the native `AbortController` API.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
